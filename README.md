@@ -1,5 +1,7 @@
 # Detroit Zip Code ER Visits Map
 
+[Click Here for Preview](https://ninth-mind.github.io/detroit-map/)
+
 ### Getting Started. 
 
 open the `index.html` file in your browser. 
