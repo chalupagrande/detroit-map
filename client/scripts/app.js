@@ -1,13 +1,14 @@
-"use strict";
+'use strict';
 
 /*
 *  RUN
 */
 
 var g = void 0,
-    svg = void 0,
-    detroitZipCodes = void 0;
-fetchMapData();
+    svg = void 0;
+// fetchMapData()
+// without the fetch
+drawMap(detroitZipCodes);
 
 /*
 *  HELPERS
@@ -17,14 +18,14 @@ function fetchMapData() {
 
   //FETCH EITHER ALL ZIPCODES THEN CONVERT OR JUST DETROIT ZIP CODES
   // d3.json("./geojson/zipcodes.json", (error, map) => {
-  d3.json("./geojson/detroitZipCodes.json", function (error, map) {
-    if (error) {
-      console.log(error);
-      throw new Error("Chrome has strict security permissions and won't allow you to fetch from a local file system. Use `http-server` to serve these files over HTTP to make the map visualization to work.");
-    } else {
-      drawMap(map);
-    }
-  });
+  // d3.json("./geojson/detroitZipCodes.json", (error, map) => {
+  //   if(error) {
+  //     console.log(error)
+  //     throw new Error("Chrome has strict security permissions and won't allow you to fetch from a local file system. Use `http-server` to serve these files over HTTP to make the map visualization to work.")
+  //   } else {
+  //     drawMap(map)
+  //   }
+  // })
 }
 
 function drawMap(map) {
