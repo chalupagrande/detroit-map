@@ -1,12 +1,5 @@
-body {
-  box-sizing: border-box; }
-
 svg {
   border: 1px solid black; }
-
-.map-wrapper {
-  display: flex;
-  flex-flow: row nowrap; }
 
 .tooltip {
   margin: 1rem; }

@@ -2,84 +2,62 @@
 *  RUN
 */
 
-let g, svg;
-// fetchMapData()
+let width = 900,
+    height = 600,
+    g, stats;
+
+let svg = d3.select('svg').attrs({
+    width: width,
+    height: height
+  })
+let zips = filterZipsAndMapData(zipcodes, options.minZip, options.maxZip)
 // without the fetch
-drawMap(detroitZipCodes)
+drawMap(zips)
 
 
 /*
 *  HELPERS
 */
 
-function fetchMapData(){
+function drawMap(zips){
 
-  //FETCH EITHER ALL ZIPCODES THEN CONVERT OR JUST DETROIT ZIP CODES
-  // d3.json("./geojson/zipcodes.json", (error, map) => {
-  // d3.json("./geojson/detroitZipCodes.json", (error, map) => {
-  //   if(error) {
-  //     console.log(error)
-  //     throw new Error("Chrome has strict security permissions and won't allow you to fetch from a local file system. Use `http-server` to serve these files over HTTP to make the map visualization to work.")
-  //   } else {
-  //     drawMap(map)
-  //   }
-  // })
-}
-
-function drawMap(map){
-  let width = 900,
-      height = 600;
   
   // SCALE AND TRANSLATE BASED ON POSITION OF DETROIT
   let projection = d3.geoAlbersUsa()
                       .scale(30000)
                       .translate([width * -5.5, height * 4]);
 
-  // FILTER ALL ZIPCODES TO JUST DETROIT ZIPCODES
-  // let zipcodes = topojson.feature(map, map.objects.zcs)
-  // detroitZipCodes = zipcodes.features.filter(el => {
-  //   let zc = el.properties.ZCTA5CE10
-  //   return zc > 48200 && zc < 48289
-  // })
-
-
-  //MAP DATA TO PROPERTIES IN ZIPCODE DATA
-  map.forEach(el => {
-    let zcDataObj = zipcodeData[el.properties.ZCTA5CE10]
-    let value = 'N/A'
-    if(zcDataObj) value = zcDataObj.erVisits
-    el.properties.VALUE = value
-  })
-
   //init SCALE
   let array = Object.values(zipcodeData)
-  let min = d3.min(array, el => el.erVisits)
-  let max = d3.max(array, el => el.erVisits)
-  updateMinAndMax(min, max)
+  let e = d3.extent(array, el => el[options.propToScaleBy])
+  // drawLegend(e[0], e[1])
 
   let scale = d3.scaleLinear()
-                .domain([min, max])
-                .range(['blue', 'red'])
+                .domain([e[0], e[1]])
+                .range([options.minColor, options.maxColor])
 
   let path = d3.geoPath().projection(projection)
-  svg = d3.select('svg').attrs({
-    width: width,
-    height: height
-  })
+  
+
+  drawLegend(e, scale)
 
   let zoom = d3.zoom()
       .on('zoom', zoomed)
   svg.call(zoom)
 
   g = svg.append('g').attr('class','global')
-  g.selectAll('.zipcodes')
-    // .data(detroitZipCodes)
-    .data(map)
+  g.selectAll('.zipcode')
+    .data(topojson.feature(zips, zips.objects.zcs).features)
     .enter()
     .append('path')
     .attrs({
+      class:'zipcode',
       d: path,
-      fill: d => scale(d.properties.VALUE),
+      fill: d => {
+        let value = d.properties.stats[options.propToScaleBy]
+        if(value) return scale(value)
+        return 'black'
+      },
       stroke: 'white',
       'stroke-width': 0.1
     }).on('click', clicked)
@@ -91,12 +69,55 @@ function zoomed(){
 
 function clicked(d){
   console.log(d)
-  document.querySelector('.zipcode').innerText = d.properties.ZCTA5CE10
-  document.querySelector('.result').innerText = d.properties.VALUE
-  
+  let stats = d.properties.stats
+  document.querySelector('span.zipcode').innerText = d.properties.ZCTA5CE10
+  for(let key in exampleObject){
+    document.querySelector(`.${key}`).innerText = stats[key] || 'N/A'
+  }
 }
 
-function updateMinAndMax(min, max){
-  document.querySelector('.min').innerText = min
-  document.querySelector('.max').innerText = max
+function drawLegend(e, scale){
+  //update tooltip area on the side
+  let statEl = document.querySelector('.stats')
+  for(let key in exampleObject){
+    let node = document.createElement('li')
+    let li = statEl.appendChild(node)
+    li.innerHTML = `${key.split('-').join(' ').toUpperCase()}: <span class="${key}"></span>`
+  }
+  let bw=20
+  let d = d3.range(0,10)
+  let l = svg.append('g').attrs({
+    class: 'legend',
+  })
+  l.append('text').text(e[0]).attrs({
+    x: 0,
+    y: 0
+  })
+  let colors = l.append('g').attr('class','colors')
+  colors.selectAll('rect')
+    .data(d)
+    .enter()
+    .append('rect')
+    .attrs({
+      x: d => d*bw + 30,
+      y: -15,
+      width: bw,
+      height: bw,
+      fill: (d,i) => scale(i*((e[1]-e[0])/10))
+    })
+  l.append('text').text(e[1]).attrs({
+    x: colors.node().getBBox().width + 35,
+    y: 0,
+  })
+  let lbb = l.node().getBBox()
+  l.attr('transform', `translate(${width/2-lbb.width} 20)`)
+}
+
+function filterZipsAndMapData(zips, min, max){
+  zips.objects.zcs.geometries = zips.objects.zcs.geometries.filter((obj)=>{
+    let z = obj.properties.ZCTA5CE10 
+    obj.properties.stats = zipcodeData[z] || {}
+    return z >= min && z < max
+  })
+  return zips
 }

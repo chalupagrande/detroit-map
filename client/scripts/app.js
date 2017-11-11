@@ -4,81 +4,52 @@
 *  RUN
 */
 
-var g = void 0,
-    svg = void 0;
-// fetchMapData()
+var width = 900,
+    height = 600,
+    g = void 0,
+    stats = void 0;
+
+var svg = d3.select('svg').attrs({
+  width: width,
+  height: height
+});
+var zips = filterZipsAndMapData(zipcodes, options.minZip, options.maxZip);
 // without the fetch
-drawMap(detroitZipCodes);
+drawMap(zips);
 
 /*
 *  HELPERS
 */
 
-function fetchMapData() {
-
-  //FETCH EITHER ALL ZIPCODES THEN CONVERT OR JUST DETROIT ZIP CODES
-  // d3.json("./geojson/zipcodes.json", (error, map) => {
-  // d3.json("./geojson/detroitZipCodes.json", (error, map) => {
-  //   if(error) {
-  //     console.log(error)
-  //     throw new Error("Chrome has strict security permissions and won't allow you to fetch from a local file system. Use `http-server` to serve these files over HTTP to make the map visualization to work.")
-  //   } else {
-  //     drawMap(map)
-  //   }
-  // })
-}
-
-function drawMap(map) {
-  var width = 900,
-      height = 600;
+function drawMap(zips) {
 
   // SCALE AND TRANSLATE BASED ON POSITION OF DETROIT
   var projection = d3.geoAlbersUsa().scale(30000).translate([width * -5.5, height * 4]);
 
-  // FILTER ALL ZIPCODES TO JUST DETROIT ZIPCODES
-  // let zipcodes = topojson.feature(map, map.objects.zcs)
-  // detroitZipCodes = zipcodes.features.filter(el => {
-  //   let zc = el.properties.ZCTA5CE10
-  //   return zc > 48200 && zc < 48289
-  // })
-
-
-  //MAP DATA TO PROPERTIES IN ZIPCODE DATA
-  map.forEach(function (el) {
-    var zcDataObj = zipcodeData[el.properties.ZCTA5CE10];
-    var value = 'N/A';
-    if (zcDataObj) value = zcDataObj.erVisits;
-    el.properties.VALUE = value;
-  });
-
   //init SCALE
   var array = Object.values(zipcodeData);
-  var min = d3.min(array, function (el) {
-    return el.erVisits;
+  var e = d3.extent(array, function (el) {
+    return el[options.propToScaleBy];
   });
-  var max = d3.max(array, function (el) {
-    return el.erVisits;
-  });
-  updateMinAndMax(min, max);
+  // drawLegend(e[0], e[1])
 
-  var scale = d3.scaleLinear().domain([min, max]).range(['blue', 'red']);
+  var scale = d3.scaleLinear().domain([e[0], e[1]]).range([options.minColor, options.maxColor]);
 
   var path = d3.geoPath().projection(projection);
-  svg = d3.select('svg').attrs({
-    width: width,
-    height: height
-  });
+
+  drawLegend(e, scale);
 
   var zoom = d3.zoom().on('zoom', zoomed);
   svg.call(zoom);
 
   g = svg.append('g').attr('class', 'global');
-  g.selectAll('.zipcodes')
-  // .data(detroitZipCodes)
-  .data(map).enter().append('path').attrs({
+  g.selectAll('.zipcode').data(topojson.feature(zips, zips.objects.zcs).features).enter().append('path').attrs({
+    class: 'zipcode',
     d: path,
     fill: function fill(d) {
-      return scale(d.properties.VALUE);
+      var value = d.properties.stats[options.propToScaleBy];
+      if (value) return scale(value);
+      return 'black';
     },
     stroke: 'white',
     'stroke-width': 0.1
@@ -91,12 +62,56 @@ function zoomed() {
 
 function clicked(d) {
   console.log(d);
-  document.querySelector('.zipcode').innerText = d.properties.ZCTA5CE10;
-  document.querySelector('.result').innerText = d.properties.VALUE;
+  var stats = d.properties.stats;
+  document.querySelector('span.zipcode').innerText = d.properties.ZCTA5CE10;
+  for (var key in exampleObject) {
+    document.querySelector('.' + key).innerText = stats[key] || 'N/A';
+  }
 }
 
-function updateMinAndMax(min, max) {
-  document.querySelector('.min').innerText = min;
-  document.querySelector('.max').innerText = max;
+function drawLegend(e, scale) {
+  //update tooltip area on the side
+  var statEl = document.querySelector('.stats');
+  for (var key in exampleObject) {
+    var node = document.createElement('li');
+    var li = statEl.appendChild(node);
+    li.innerHTML = key.split('-').join(' ').toUpperCase() + ': <span class="' + key + '"></span>';
+  }
+  var bw = 20;
+  var d = d3.range(0, 10);
+  var l = svg.append('g').attrs({
+    class: 'legend'
+  });
+  l.append('text').text(e[0]).attrs({
+    x: 0,
+    y: 0
+  });
+  var colors = l.append('g').attr('class', 'colors');
+  colors.selectAll('rect').data(d).enter().append('rect').attrs({
+    x: function x(d) {
+      return d * bw + 30;
+    },
+    y: -15,
+    width: bw,
+    height: bw,
+    fill: function fill(d, i) {
+      return scale(i * ((e[1] - e[0]) / 10));
+    }
+  });
+  l.append('text').text(e[1]).attrs({
+    x: colors.node().getBBox().width + 35,
+    y: 0
+  });
+  var lbb = l.node().getBBox();
+  l.attr('transform', 'translate(' + (width / 2 - lbb.width) + ' 20)');
+}
+
+function filterZipsAndMapData(zips, min, max) {
+  zips.objects.zcs.geometries = zips.objects.zcs.geometries.filter(function (obj) {
+    var z = obj.properties.ZCTA5CE10;
+    obj.properties.stats = zipcodeData[z] || {};
+    return z >= min && z < max;
+  });
+  return zips;
 }
 //# sourceMappingURL=app.js.map

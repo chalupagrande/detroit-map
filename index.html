@@ -11,12 +11,12 @@
         preserveAspectRation="xMidYMid slice"
         viewBox="0 0 600 400">
     </svg>
+    
     <div class="tooltip">
       <p>Click on a Zip Code to get more details.</p>
-      <p>Zipcode: <span class="zipcode"></span></p>
-      <p>Value: <span class="result"></span></p>
-      <p>MIN: <span class="min"></span></p>
-      <p>MAX: <span class="max"></span></p>
+      <h3>Zipcode: <span class="zipcode"></span></h3>
+      <ul class="stats">
+      </ul>
     </div>
   </div>
   
@@ -24,7 +24,8 @@
   <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
   <script src="client/data.js"></script>
-  <script src="client/geojson/detroitZipCodes.js"></script>
+  <!-- <script src="client/geojson/detroitZipCodes.js"></script> -->
+  <script src="client/geojson/allZips.js"></script>
   <script src="client/scripts/app.js"></script>
 </body>
 </html>
