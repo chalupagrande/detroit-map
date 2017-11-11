@@ -5,14 +5,23 @@ let options = {
   maxZip: 48289,
   propToScaleBy: 'er-visits'
 }
+
+/*
+  An object is anything that is between {...}
+  That said, any object after the zipcode must match the way the `exampleObject` looks.
+  Anything after a `//` or between a is a comment and will be ignored
+*/
+
 let exampleObject = {
   'er-visits': 1000,
-  //population: 1000
+  //population: 2000,
+  //cost: 4000
 }
-
 let zipcodeData = {
   "48201": {
     'er-visits': 1000,
+    //population: 2000,
+    //cost: 4000
   },
   "48202": {
     'er-visits': 2000,
