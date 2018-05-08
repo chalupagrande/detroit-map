@@ -30,7 +30,7 @@ loadData()
 */
 
 function loadData(){
-  d3.csv('/data.csv', (d)=>{
+  d3.csv('../../data.csv', (d)=>{
    return {
      zipcode: +d['Trimmed Zipcode'],
      visits: +d['Number of ED visits'],
