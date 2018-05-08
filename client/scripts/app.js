@@ -1,10 +1,18 @@
 'use strict';
 
-/*
-*  RUN
-*/
+var options = {
+  minColor: 'blue',
+  maxColor: 'red',
+  minZip: 48200,
+  maxZip: 48289,
+  propToScaleBy: 'visits',
+  exampleObject: {}
 
-var width = 900,
+  /*
+  *  RUN
+  */
+
+};var width = 900,
     height = 600,
     g = void 0,
     stats = void 0;
@@ -13,37 +21,50 @@ var svg = d3.select('svg').attrs({
   width: width,
   height: height
 });
-var zips = filterZipsAndMapData(zipcodes, options.minZip, options.maxZip);
+// let zips = filterZipsAndMapData(zipcodes, options.minZip, options.maxZip)
 // without the fetch
-drawMap(zips);
+loadData();
+// drawMap(zips)
+
 
 /*
 *  HELPERS
 */
 
-function drawMap(zips) {
+function loadData() {
+  d3.csv('/data.csv', function (d) {
+    return {
+      zipcode: +d['Trimmed Zipcode'],
+      visits: +d['Number of ED visits'],
+      admissions: +d['Number of Admissions']
+    };
+  }, function (d) {
+    console.log(d);
 
+    var _formatData = formatData(zipcodes, d),
+        zcsGeometryObj = _formatData.zcsGeometryObj,
+        extent = _formatData.extent;
+
+    drawMap(zcsGeometryObj, extent);
+  });
+}
+
+function drawMap(data, extent) {
   // SCALE AND TRANSLATE BASED ON POSITION OF DETROIT
   var projection = d3.geoAlbersUsa().scale(30000).translate([width * -5.5, height * 4]);
 
   //init SCALE
-  var array = Object.values(zipcodeData);
-  var e = d3.extent(array, function (el) {
-    return el[options.propToScaleBy];
-  });
-  // drawLegend(e[0], e[1])
-
-  var scale = d3.scaleLinear().domain([e[0], e[1]]).range([options.minColor, options.maxColor]);
+  var scale = d3.scaleLinear().domain([extent[0], extent[1]]).range([options.minColor, options.maxColor]);
 
   var path = d3.geoPath().projection(projection);
-
-  drawLegend(e, scale);
+  drawLegend(data, extent, scale);
 
   var zoom = d3.zoom().on('zoom', zoomed);
   svg.call(zoom);
 
   g = svg.append('g').attr('class', 'global');
-  g.selectAll('.zipcode').data(topojson.feature(zips, zips.objects.zcs).features).enter().append('path').attrs({
+
+  g.selectAll('.zipcode').data(topojson.feature(data, data.objects.zcs).features).enter().append('path').attrs({
     class: 'zipcode',
     d: path,
     fill: function fill(d) {
@@ -63,16 +84,16 @@ function zoomed() {
 function clicked(d) {
   console.log(d);
   var stats = d.properties.stats;
-  document.querySelector('span.zipcode').innerText = d.properties.ZCTA5CE10;
-  for (var key in exampleObject) {
-    document.querySelector('.' + key).innerText = stats[key] || 'N/A';
+  document.querySelector('span.zipcode').innerText = stats.zipcode;
+  for (var key in options.exampleObject) {
+    document.querySelector('.' + key).innerText = stats[key];
   }
 }
 
-function drawLegend(e, scale) {
+function drawLegend(data, e, scale) {
   //update tooltip area on the side
   var statEl = document.querySelector('.stats');
-  for (var key in exampleObject) {
+  for (var key in options.exampleObject) {
     var node = document.createElement('li');
     var li = statEl.appendChild(node);
     li.innerHTML = key.split('-').join(' ').toUpperCase() + ': <span class="' + key + '"></span>';
@@ -106,12 +127,25 @@ function drawLegend(e, scale) {
   l.attr('transform', 'translate(' + (width / 2 - lbb.width) + ' 20)');
 }
 
-function filterZipsAndMapData(zips, min, max) {
-  zips.objects.zcs.geometries = zips.objects.zcs.geometries.filter(function (obj) {
-    var z = obj.properties.ZCTA5CE10;
-    obj.properties.stats = zipcodeData[z] || {};
-    return z >= min && z < max;
+function formatData(zipcodeGeometries, data) {
+  var dataObj = {};
+  options.exampleObject = data[0];
+  var extent = d3.extent(data, function (el) {
+    return el[options.propToScaleBy];
   });
-  return zips;
+  data.forEach(function (el) {
+    return dataObj[el.zipcode] = el;
+  });
+
+  zipcodeGeometries.objects.zcs.geometries = zipcodeGeometries.objects.zcs.geometries.filter(function (obj) {
+    var z = obj.properties.ZCTA5CE10;
+    obj.properties.stats = dataObj[z] || {};
+    return !!dataObj[z];
+  });
+  return {
+    zcsGeometryObj: zipcodeGeometries,
+    dataObj: dataObj,
+    extent: extent
+  };
 }
 //# sourceMappingURL=app.js.map
