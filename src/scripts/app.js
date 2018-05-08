@@ -6,7 +6,7 @@ let options = {
   propToScaleBy: 'visits',
   exampleObject: {}
 }
-
+console.log('running')
 /*
 *  RUN
 */
